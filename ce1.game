@@ -1,0 +1,8 @@
+(1) * 1 * * 2
+(3) * 2 * * 4
+[2] * * 1 * 3
+[4] * * 2 * 1
+--DOT--
+1 // Node 1 is first
+{rank=same 2, 4} // Nodes 2 and 4 are on the same level
+rankdir=LR // Draws the graph from left to right
