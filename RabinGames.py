@@ -102,8 +102,12 @@ class Node(object):
             # TODO succ:id -> ref
             result += '\n    ' + self.id + ' -> ' + destination
         return result
-        
+
     def remove_reds_from_setset(self, setset):
+        '''
+        Returns a copy of the given setset which does not contain innersets
+        that contains some of the node.red sets
+        '''
         tmp = setset.copy()
         for red in self.red:
             tmp = tmp.remove_all_with(red)
@@ -224,7 +228,7 @@ class Game(object):
         ## Fill the queue with predecessors of states that have non-empty S
         for node in self.nodes:
             node.S = self.setset_class(
-                    [self.setset_class.innersets_cls([green]) 
+                    [self.setset_class.innersets_cls([green])
                     for green in node.green]
                     )
             node.S -= self.setset_class(
@@ -237,10 +241,8 @@ class Game(object):
 
         while queue:
             node = queue.pop()
-            new = self.setset_class(
-                    [self.setset_class.innersets_cls([green]) 
-                    for green in node.green]
-                    )
+            new = node.S.copy()
+
             if node.type == SYSTEM:
                 for succ_ in node.succ:
                     new |= self.id_to_node[succ_].S
