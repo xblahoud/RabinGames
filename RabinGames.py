@@ -12,7 +12,7 @@ __all__ = ['Node', 'Game']
 
 import os
 import re
-import IPython.display
+#import IPython.display
 
 #TODO Check whether all succ are defined
 #TODO Node.copy(), Game.copy()
@@ -46,8 +46,8 @@ class Node(object):
     def __init__(self, line):
         temp = line.split('*')
         self.type, self.id = Node._parse_type_and_id(temp[0].strip())
-        self.green = list(temp[1].split())
-        self.red = list(temp[2].split())
+        self.green = frozenset(temp[1].split())
+        self.red = frozenset(temp[2].split())
         self.succ = list(temp[3].split())
         self.S = None
 
@@ -89,10 +89,10 @@ class Node(object):
         result += self.id
         if self.green:
             result += '<BR/><FONT COLOR="green">' +\
-                self.green.__repr__() + '</FONT>'
+                '{' + ','.join(self.green) + '}' + '</FONT>'
         if self.red:
             result += '<BR/><FONT COLOR="red">' +\
-                self.red.__repr__() + '</FONT>'
+                '{' + ','.join(self.red) + '}' + '</FONT>'
         result += '>'
         if self.type == ENV:
             result += ',shape="box"'
@@ -118,7 +118,6 @@ class Game(object):
         self.preds = {} # stores the predecessor relation
         self.id_to_node = {} # maps ids to node objects
         self.nodes = list() # store all the nodes
-        self.queue = set() # queue for green sets computation
         self.dot_attr = dot_attr
 
         if filename is not None:
@@ -136,8 +135,7 @@ class Game(object):
 
             self._read_nodes_from_string(game_str)
 
-        # TODO
-        # Redo id's to references in succ?
+        # TODO Redo id's to references in succ?
         ## Make references out of ids in succ relation & fill self.pred
         for node in self.nodes:
             #node.succ = [self.id_to_node[s] for s in node.succ]
@@ -206,33 +204,27 @@ class Game(object):
         dot += "\n}"
         return dot
 
-    def _add_preds_to_queue(self, node):
-        # TODO as a function, remove queue as the game atribut
-        '''Adds all predecessors of the given node to the queue
-        '''
-        predecessor_set = set(self.preds[node.id])
-        self.queue |= predecessor_set
-
     def compute_green_sets(self):
         '''
         Computes the setset of indices, such that the player SYSTEM
         can force to visit some green set for each of the given sets.
         '''
-        # TODO not a member of Game
         # TODO compute also red sets for environment
-        self.queue = set() # stores the nodes to process
+        queue = set() # stores the nodes to process
 
 
         ## Fill the queue with predecessors of states that have non-empty S
         for node in self.nodes:
-            node.S = Setset.from_string_list(node.green)
-            node.S.difference_update(Setset.from_string_list(node.red))
+            node.S = Setset([frozenset([green]) for green in node.green])
+            node.S.difference_update(Setset([frozenset(
+                [red]) for red in node.red]))
             if node.S:
-                self._add_preds_to_queue(node)
+                # Ads predecessors to q
+                queue |= set(self.preds[node.id])
 
-        while self.queue:
-            node = self.queue.pop()
-            new = Setset.from_string_list(node.green)
+        while queue:
+            node = queue.pop()
+            new = Setset([frozenset([green]) for green in node.green])
 
             if node.type == SYSTEM:
                 for succ_ in node.succ:
@@ -247,8 +239,8 @@ class Game(object):
 
             if new != node.S:
                 node.S = new
-                self._add_preds_to_queue(node)
-                
+                queue |= set(self.preds[node.id])
+
     # TODO def print_to_file(self,filename):
 
 #%%
@@ -264,4 +256,3 @@ if __name__ == '__main__':
     GAME = Game(TEST_GAME)
     GAME.compute_green_sets()
     #IPython.display.display(GAME)
-    

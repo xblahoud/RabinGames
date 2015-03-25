@@ -18,15 +18,6 @@ class FrozenSetset(frozenset):
         tmp = ['{' + ','.join(oneset) + '}' for oneset in self]
         return '{' + ','.join(tmp) + '}'
 
-    @classmethod
-    def from_string_list(cls, iterable):
-        '''
-        Returns a FrozenSetset object from an iterable of sets.
-        The strings should be of the format 'a,b,c' for {a,b,c}.
-        '''
-        sets = [frozenset(string.split(',')) for string in iterable]
-        return cls(sets)
-
     def __get_supersets__(self, subset):
         '''
         Returns a list of frozensets, that are strict supersets of 'subset'.

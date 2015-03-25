@@ -15,17 +15,6 @@ class Setset(set):
         tmp = ['{' + ','.join(oneset) + '}' for oneset in self]
         return '{' + ','.join(tmp) + '}'
 
-    @classmethod
-    def from_string_list(cls, iterable):
-        '''
-        Returns a setset object from an iterable of sets.
-        The strings should be of the format 'a,b,c' for {a,b,c}.
-        '''
-        self = cls()
-        for string in iterable:
-            self.add(frozenset(string.split(',')))
-        return self
-
     def __get_supersets__(self, subset):
         '''
         Returns a list of frozensets, that are strict supersets of 'subset'.
@@ -41,6 +30,8 @@ class Setset(set):
         Returns a merge ($otimes$) of itself and the other Setset.
         S_1 otimes S_2 = {a cup b | a in S_1, b in S_2}
         '''
+        if other is None:
+            return self
         return Setset([s1 | s2 for s1 in self for s2 in other])
 
     def merge_update(self, other):
@@ -61,7 +52,7 @@ class Setset(set):
         '''
         if iterable is None or len(iterable) == 0:
             return cls()
-        result = Setset([frozenset()])
+        result = cls([frozenset()])
         for setset in iterable:
             result.merge_update(setset)
         return result
