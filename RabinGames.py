@@ -18,7 +18,7 @@ import re
 #TODO Node.copy(), Game.copy()
 #TODO Game.invert_players()
 
-from Setset import Setset
+from FrozenSetset import FrozenSetset
 
 SYSTEM = 1
 ENV = 0
@@ -73,7 +73,8 @@ class Node(object):
         if self.red:
             result += "\n  red sets: " + self.red.__repr__()
         result += "\n  successors: " + self.succ.__repr__()
-        result += "\n  S(" + self.id + ") = " + self.S.__repr__()
+        if self.S is not None:
+            result += "\n  S(" + self.id + ") = " + self.S.__repr__()
         return result
 
     def get_dot(self):
@@ -101,6 +102,12 @@ class Node(object):
             # TODO succ:id -> ref
             result += '\n    ' + self.id + ' -> ' + destination
         return result
+        
+    def remove_reds_from_setset(self, setset):
+        tmp = setset.copy()
+        for red in self.red:
+            tmp = tmp.remove_all_with(red)
+        return tmp
 
 class Game(object):
     '''
@@ -113,6 +120,8 @@ class Game(object):
     `dot_attr` are arguments send to dot. It expects to be a (possibly)
     multiline string.
     '''
+    node_class = Node
+    setset_class = FrozenSetset
     def __init__(self, game_str=None, filename=None, dot_attr=None,
                  dot_string=DOT_STRING):
         self.preds = {} # stores the predecessor relation
@@ -157,7 +166,7 @@ class Game(object):
         '''Creates a new node from the given string and adds it
         into the game graph.
         '''
-        node = Node(node_str)
+        node = self.node_class(node_str)
         self.nodes.append(node)
         self.id_to_node[node.id] = node
 
@@ -209,36 +218,42 @@ class Game(object):
         Computes the setset of indices, such that the player SYSTEM
         can force to visit some green set for each of the given sets.
         '''
-        # TODO compute also red sets for environment
         queue = set() # stores the nodes to process
 
 
         ## Fill the queue with predecessors of states that have non-empty S
         for node in self.nodes:
-            node.S = Setset([frozenset([green]) for green in node.green])
-            node.S.difference_update(Setset([frozenset(
-                [red]) for red in node.red]))
+            node.S = self.setset_class(
+                    [self.setset_class.innersets_cls([green]) 
+                    for green in node.green]
+                    )
+            node.S -= self.setset_class(
+                    [self.setset_class.innersets_cls([red])
+                    for red in node.red]
+                    )
             if node.S:
                 # Ads predecessors to q
                 queue |= set(self.preds[node.id])
 
         while queue:
             node = queue.pop()
-            new = Setset([frozenset([green]) for green in node.green])
-
+            new = self.setset_class(
+                    [self.setset_class.innersets_cls([green]) 
+                    for green in node.green]
+                    )
             if node.type == SYSTEM:
                 for succ_ in node.succ:
-                    new.update(self.id_to_node[succ_].S)
+                    new |= self.id_to_node[succ_].S
             else:
-                new.update(Setset.merge_all([self.id_to_node[succ].S
+                new |= (self.setset_class.merge_all([self.id_to_node[succ].S
                         for succ in node.succ]))
 
-            new.purify()
-            for red in node.red:
-                new.remove_all_with(red)
+            new = new.purify()
+            new = node.remove_reds_from_setset(new)
 
             if new != node.S:
                 node.S = new
+				# Ads predecessors to q
                 queue |= set(self.preds[node.id])
 
     # TODO def print_to_file(self,filename):

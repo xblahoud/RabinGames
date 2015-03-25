@@ -1,4 +1,4 @@
-""" Implementation of a set of sets """
+""" Imutable imlementation of a set of sets """
 
 class FrozenSetset(frozenset):
     """
@@ -10,12 +10,13 @@ class FrozenSetset(frozenset):
     """
     #def __init__(self):
     #    self.sets = set()
+    innersets_cls = frozenset
 
     def __repr__(self):
         # tmp_list = ['{' + s + '}' for s in self.sets]
         if not self:
             return '{}'
-        tmp = ['{' + ','.join(oneset) + '}' for oneset in self]
+        tmp = ['{' + ','.join([str(x) for x in oneset]) + '}' for oneset in self]
         return '{' + ','.join(tmp) + '}'
 
     def __get_supersets__(self, subset):
@@ -46,7 +47,7 @@ class FrozenSetset(frozenset):
         '''
         if iterable is None or len(iterable) == 0:
             return cls()
-        result = cls([frozenset()])
+        result = cls([cls.innersets_cls()])
         for fsetset in iterable:
             result = result.merge(fsetset)
         return result
@@ -73,8 +74,8 @@ class FrozenSetset(frozenset):
 
 
 if __name__ == '__main__':
-    a = FrozenSetset.from_string_list(['a,b', 'c,d'])
-    b = FrozenSetset.from_string_list(['1,2', '3,4'])
+    a = FrozenSetset([frozenset(['a','b']), frozenset(['c','d'])])
+    b = FrozenSetset([frozenset(['1','2']), frozenset(['3',4])])
     c = a.merge(b)
     d = a.union(c)
     
